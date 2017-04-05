@@ -22,7 +22,16 @@
 		UIImageView *artworkImageView = MSHookIvar<UIImageView *>(artworkView, "_artworkImageView");
 		MPMediaItem *nowPlayingItem = myPlayer.nowPlayingItem;
     	MPMediaItemArtwork *artwork = [nowPlayingItem valueForProperty:MPMediaItemPropertyArtwork];
-		UIImage *currentImage = [artwork imageWithSize:artworkView.frame.size];				
+		UIImage *currentImage = [artwork imageWithSize:artworkView.frame.size];	
+		if(wallpaper && !wallPaperIsAnimating)
+		{
+			wallPaperIsAnimating = YES;
+			[UIView transitionWithView:wallpaper 
+										duration:0.75 
+										options: UIViewAnimationOptionTransitionCrossDissolve 
+										animations:^{ wallpaper.image = currentImage; } 
+										completion:^(BOOL finished) { if (finished) wallPaperIsAnimating = NO; }];
+		}			
 		if(!artworkIsAnimating)
 		{
 			artworkIsAnimating = YES;
@@ -50,6 +59,32 @@
 	                        object:myPlayer];
 
     [myPlayer beginGeneratingPlaybackNotifications];
+
+    NSArray *windows = [UIApplication sharedApplication].windows;
+    for (UIWindow *window in windows) 
+    {
+        if ([NSStringFromClass([window class]) isEqualToString:@"_SBWallpaperWindow"]) 
+        {
+			[window loopViewHierarchy:^(UIView* view, BOOL* stop) 
+			{
+			    if ([view isKindOfClass:[%c(SBFStaticWallpaperImageView) class]]) 
+			    {
+			        /// use the view
+			        wallpaper = (SBFStaticWallpaperImageView *)view;
+			        *stop = YES;
+			    }
+			}];
+			break;
+        }
+    }
+
+    if(wallpaper) originalImage = wallpaper.image;
+}
+
+- (void)viewWillDisappear:(id)arg1
+{
+	%orig;
+	if(wallpaper && originalImage) wallpaper.image = originalImage;
 }
 
 - (void)viewDidDisappear:(id)arg1
@@ -67,6 +102,10 @@
     notificationCenter = nil;
 
     artworkView = nil;
+
+    wallpaper = nil;
+
+    originalImage = nil;
 }
 
 %end
