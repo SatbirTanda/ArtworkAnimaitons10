@@ -2,6 +2,10 @@
 
 @interface SBDashBoardMediaArtworkViewController : UIViewController
 - (void)getTrackDescription:(id)notification;
+- (BOOL)isTweakEnabled;
+- (BOOL)isBackgroundAnimationEnabled;
+- (NSString *)getAnimationKey;
+- (int)currentAnimation;
 @end
 
 @interface MPUNowPlayingArtworkView : UIView

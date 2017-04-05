@@ -1,9 +1,9 @@
 Package: com.sst1337.ArtworkAnimations10
 Name: ArtworkAnimations10
 Depends: mobilesubstrate
-Version: 0.0.1
+Version: 1.0.0
 Architecture: iphoneos-arm
-Description: An awesome MobileSubstrate tweak!
+Description: Animation Your Lockscreen Album Art!
 Maintainer: sst1337
 Author: sst1337
 Section: Tweaks

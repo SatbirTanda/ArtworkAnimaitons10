@@ -1,45 +1,107 @@
 #import "ArtworkAnimations10.h"
+#define PLIST_FILENAME @"/var/mobile/Library/Preferences/com.sst1337.ArtworkAnimations10.plist"
+
+//PLIST KEYS
+#define ONOFF @"OnOff"
+#define ANIMATION @"Animation"
+#define BACKGROUND @"Background"
+
+/*ANIMATIONS:*/
+#define FLIP_RIGHT @"Flip Right"
+#define FLIP_LEFT @"Flip Left"
+#define FLIP_TOP @"Flip Top"
+#define FLIP_BOTTOM @"Flip Bottom"
+#define CURL_UP @"Curl Up"
+#define CURL_DOWN @"Curl Down"
+#define DISSOVLE @"Dissolve"
+#define RANDOM @"Random"
 
 %hook SBDashBoardMediaArtworkViewController
 
 %new
+- (BOOL)isTweakEnabled
+{
+  NSDictionary *settings = [[%c(NSDictionary) alloc] initWithContentsOfFile:PLIST_FILENAME];
+  if([[settings objectForKey: ONOFF] boolValue] || [settings objectForKey: ONOFF] == nil) return YES;  
+  return NO;
+}
+
+%new
+- (BOOL)isBackgroundAnimationEnabled
+{
+  NSDictionary *settings = [[%c(NSDictionary) alloc] initWithContentsOfFile:PLIST_FILENAME];
+  if([[settings objectForKey: BACKGROUND] boolValue] || [settings objectForKey: BACKGROUND] == nil) return YES;  
+  return NO;
+}
+
+%new
+- (NSString *)getAnimationKey
+{
+  NSDictionary *settings = [[%c(NSDictionary) alloc] initWithContentsOfFile:PLIST_FILENAME];
+  if([settings objectForKey:ANIMATION] == nil) return RANDOM;
+  return [settings objectForKey:ANIMATION];
+}
+
+%new
+- (int)currentAnimation
+{
+	NSString *key = [self getAnimationKey];
+	if([key isEqualToString: FLIP_RIGHT]) return 2 << 20;
+	else if([key isEqualToString: FLIP_LEFT]) return 1 << 20;
+	else if([key isEqualToString: FLIP_TOP]) return 6 << 20;
+	else if([key isEqualToString: FLIP_BOTTOM]) return 7 << 20;
+	else if([key isEqualToString: CURL_UP]) return 3 << 20;
+	else if([key isEqualToString: CURL_DOWN]) return 4 << 20;
+	else if([key isEqualToString: DISSOVLE]) return 5 << 20;
+	else
+	{
+		int animationValues[7] = {2 << 20, 1 << 20, 6 << 20, 7 << 20, 5 << 20, 3 << 20, 4 << 20};
+		int randomIndex = arc4random() % 7;
+		return animationValues[randomIndex];
+	}
+}
+
+%new
 - (void)getTrackDescription:(id)notification
 {
-	if(artworkView == nil)
+	if([self isTweakEnabled])
 	{
-		[self.view loopViewHierarchy:^(UIView* view, BOOL* stop) 
+		if(artworkView == nil)
 		{
-		    if ([view isKindOfClass:[%c(MPUNowPlayingArtworkView) class]]) 
-		    {
-		        /// use the view
-		        artworkView = (MPUNowPlayingArtworkView *)view;
-		        *stop = YES;
-		    }
-		}];
-	}
-	if(artworkView)
-	{
-		UIImageView *artworkImageView = MSHookIvar<UIImageView *>(artworkView, "_artworkImageView");
-		MPMediaItem *nowPlayingItem = myPlayer.nowPlayingItem;
-    	MPMediaItemArtwork *artwork = [nowPlayingItem valueForProperty:MPMediaItemPropertyArtwork];
-		UIImage *currentImage = [artwork imageWithSize:artworkView.frame.size];	
-		if(wallpaper && !wallPaperIsAnimating)
+			[self.view loopViewHierarchy:^(UIView* view, BOOL* stop) 
+			{
+			    if ([view isKindOfClass:[%c(MPUNowPlayingArtworkView) class]]) 
+			    {
+			        /// use the view
+			        artworkView = (MPUNowPlayingArtworkView *)view;
+			        *stop = YES;
+			    }
+			}];
+		}
+		if(artworkView)
 		{
-			wallPaperIsAnimating = YES;
-			[UIView transitionWithView:wallpaper 
-										duration:0.75 
-										options: UIViewAnimationOptionTransitionCrossDissolve 
-										animations:^{ wallpaper.image = currentImage; } 
-										completion:^(BOOL finished) { if (finished) wallPaperIsAnimating = NO; }];
-		}			
-		if(!artworkIsAnimating)
-		{
-			artworkIsAnimating = YES;
-			[UIView transitionWithView:artworkImageView 
-										duration:0.75 
-										options:4 << 20 
-										animations:^{ artworkImageView.image = currentImage; } 
-										completion:^(BOOL finished) { if (finished) artworkIsAnimating = NO; }];
+			UIImageView *artworkImageView = MSHookIvar<UIImageView *>(artworkView, "_artworkImageView");
+			MPMediaItem *nowPlayingItem = myPlayer.nowPlayingItem;
+	    	MPMediaItemArtwork *artwork = [nowPlayingItem valueForProperty:MPMediaItemPropertyArtwork];
+			UIImage *currentImage = [artwork imageWithSize:artworkView.frame.size];	
+			if(wallpaper && !wallPaperIsAnimating && [self isBackgroundAnimationEnabled])
+			{
+				wallPaperIsAnimating = YES;
+				[UIView transitionWithView:wallpaper 
+											duration:0.75 
+											options: UIViewAnimationOptionTransitionCrossDissolve 
+											animations:^{ wallpaper.image = currentImage; } 
+											completion:^(BOOL finished) { if (finished) wallPaperIsAnimating = NO; }];
+			}			
+			if(!artworkIsAnimating)
+			{
+				artworkIsAnimating = YES;
+				[UIView transitionWithView:artworkImageView 
+											duration:0.75 
+											options:[self currentAnimation] 
+											animations:^{ artworkImageView.image = currentImage; } 
+											completion:^(BOOL finished) { if (finished) artworkIsAnimating = NO; }];
+			}
 		}
 	}
 }
@@ -48,37 +110,43 @@
 {
 	%orig;
 
-    // creating simple audio player
-    myPlayer = [MPMusicPlayerController systemMusicPlayer];
+	if([self isTweakEnabled])
+	{
+	    // creating simple audio player
+	    myPlayer = [MPMusicPlayerController systemMusicPlayer];
 
-    notificationCenter = [NSNotificationCenter defaultCenter];
+	    notificationCenter = [NSNotificationCenter defaultCenter];
 
-	[notificationCenter addObserver:self
-	                    selector:@selector(getTrackDescription:)
-	                        name:MPMusicPlayerControllerNowPlayingItemDidChangeNotification
-	                        object:myPlayer];
+		[notificationCenter addObserver:self
+		                    selector:@selector(getTrackDescription:)
+		                        name:MPMusicPlayerControllerNowPlayingItemDidChangeNotification
+		                        object:myPlayer];
 
-    [myPlayer beginGeneratingPlaybackNotifications];
+	    [myPlayer beginGeneratingPlaybackNotifications];
 
-    NSArray *windows = [UIApplication sharedApplication].windows;
-    for (UIWindow *window in windows) 
-    {
-        if ([NSStringFromClass([window class]) isEqualToString:@"_SBWallpaperWindow"]) 
-        {
-			[window loopViewHierarchy:^(UIView* view, BOOL* stop) 
-			{
-			    if ([view isKindOfClass:[%c(SBFStaticWallpaperImageView) class]]) 
-			    {
-			        /// use the view
-			        wallpaper = (SBFStaticWallpaperImageView *)view;
-			        *stop = YES;
-			    }
-			}];
-			break;
-        }
-    }
+		if([self isBackgroundAnimationEnabled])
+		{
+		    NSArray *windows = [UIApplication sharedApplication].windows;
+		    for (UIWindow *window in windows) 
+		    {
+		        if ([NSStringFromClass([window class]) isEqualToString:@"_SBWallpaperWindow"]) 
+		        {
+					[window loopViewHierarchy:^(UIView* view, BOOL* stop) 
+					{
+					    if ([view isKindOfClass:[%c(SBFStaticWallpaperImageView) class]]) 
+					    {
+					        /// use the view
+					        wallpaper = (SBFStaticWallpaperImageView *)view;
+					        *stop = YES;
+					    }
+					}];
+					break;
+		        }
+		    }
 
-    if(wallpaper) originalImage = wallpaper.image;
+		    if(wallpaper) originalImage = wallpaper.image;
+		}
+	}
 }
 
 - (void)viewWillDisappear:(id)arg1
