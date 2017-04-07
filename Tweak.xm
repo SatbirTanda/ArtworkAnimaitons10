@@ -1,10 +1,10 @@
 #import "ArtworkAnimations10.h"
 #define PLIST_FILENAME @"/var/mobile/Library/Preferences/com.sst1337.ArtworkAnimations10.plist"
-
+#define TWEAK "com.sst1337.ArtworkAnimations10"
 //PLIST KEYS
-#define ONOFF @"OnOff"
-#define ANIMATION @"Animation"
-#define BACKGROUND @"Background"
+#define ONOFF "OnOff"
+#define ANIMATION "Animation"
+#define BACKGROUND "Background"
 
 /*ANIMATIONS:*/
 #define FLIP_RIGHT @"Flip Right"
@@ -21,25 +21,29 @@
 %new
 - (BOOL)isTweakEnabled
 {
-  NSDictionary *settings = [[%c(NSDictionary) alloc] initWithContentsOfFile:PLIST_FILENAME];
-  if([[settings objectForKey: ONOFF] boolValue] || [settings objectForKey: ONOFF] == nil) return YES;  
-  return NO;
+	CFPreferencesAppSynchronize(CFSTR(TWEAK));
+	CFPropertyListRef value = CFPreferencesCopyAppValue(CFSTR(ONOFF), CFSTR(TWEAK));
+	if(value == nil) return YES;  
+	return [CFBridgingRelease(value) boolValue];
 }
 
 %new
 - (BOOL)isBackgroundAnimationEnabled
 {
-  NSDictionary *settings = [[%c(NSDictionary) alloc] initWithContentsOfFile:PLIST_FILENAME];
-  if([[settings objectForKey: BACKGROUND] boolValue] || [settings objectForKey: BACKGROUND] == nil) return YES;  
-  return NO;
+	CFPreferencesAppSynchronize(CFSTR(TWEAK));
+	CFPropertyListRef value = CFPreferencesCopyAppValue(CFSTR(BACKGROUND), CFSTR(TWEAK));
+	if(value == nil) return YES;  
+	return [CFBridgingRelease(value) boolValue];
 }
 
 %new
 - (NSString *)getAnimationKey
 {
-  NSDictionary *settings = [[%c(NSDictionary) alloc] initWithContentsOfFile:PLIST_FILENAME];
-  if([settings objectForKey:ANIMATION] == nil) return RANDOM;
-  return [settings objectForKey:ANIMATION];
+	CFPreferencesAppSynchronize(CFSTR(TWEAK));
+	CFPropertyListRef value = CFPreferencesCopyAppValue(CFSTR(ANIMATION), CFSTR(TWEAK));
+	NSString *animation = (NSString *)CFBridgingRelease(value);
+	if(animation != nil) return animation;
+	return RANDOM;
 }
 
 %new
