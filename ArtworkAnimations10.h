@@ -14,8 +14,6 @@
 @interface SBFStaticWallpaperImageView : UIImageView
 @end
 
-static NSDictionary *preferences = nil;
-
 static MPMusicPlayerController *myPlayer = nil;
 static NSNotificationCenter *notificationCenter = nil;
 static MPUNowPlayingArtworkView *artworkView = nil;

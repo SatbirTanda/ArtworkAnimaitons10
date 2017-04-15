@@ -16,6 +16,8 @@
 #define DISSOVLE @"Dissolve"
 #define RANDOM @"Random"
 
+%group iOS10
+
 %hook SBDashBoardMediaArtworkViewController
 
 %new
@@ -181,3 +183,21 @@
 }
 
 %end
+
+%end
+
+%ctor 
+{
+    if(kCFCoreFoundationVersionNumber >= 1300) // iOS 10
+    {
+        %init(iOS10);
+    }
+    else if(kCFCoreFoundationVersionNumber >= 847) // iOS 9
+    {
+        //%init(iOS9);
+    }
+    else
+    {
+    	%init;
+    }
+}
